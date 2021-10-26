@@ -3,7 +3,7 @@
 from math import log2;
 import tensorflow as tf;
 
-def Encoder():
+def Encoder(**kwargs):
   inputs = tf.keras.Input((None, None, 3)); # inputs.shape = (batch, height, width, 3)
   results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(inputs);
   results = tf.keras.layers.BatchNormalization()(results);
@@ -27,7 +27,7 @@ def Encoder():
   results = tf.keras.layers.Dense(units = 256)(features);
   results = tf.keras.layers.LeakyReLU(alpha = 0.1)(results);
   results = tf.keras.layers.Dense(units = 256)(results);
-  return tf.keras.Model(inputs = inputs, outputs = (features, results));
+  return tf.keras.Model(inputs = inputs, outputs = (features, results), **kwargs);
 
 class Queue(tf.keras.layers.Layer):
   def __init__(self, k, **kwargs):
@@ -42,6 +42,13 @@ class Queue(tf.keras.layers.Layer):
     retval = tf.identity(self.queue);
     self.queue.assign(tf.concat([self.queue[:,tf.shape(inputs)[0]:], tf.transpose(inputs)], axis = -1));
     return retval;
+  def get_config(self):
+    config = super(Queue, self).get_config();
+    config['k'] = self.k;
+    return config;
+  @classmethod
+  def from_config(cls, config):
+    return cls(**config);
 
 class MOCO(tf.keras.Model):
   def __init__(self, k = 32 * 256, m = 0.999, t = 0.07, enable_train = True, **kwargs):
@@ -76,7 +83,7 @@ class MOCO(tf.keras.Model):
       features, _ = self.encoder_q(inputs); # features.shape = (batch, 256)
       return features;
 
-def DA_Conv():
+def DA_Conv(**kwargs):
   image = tf.keras.Input((None, None, 64));
   de = tf.keras.Input((64,));
   # 1) branch 1 (image feature convolution with degradation embedding)
@@ -98,9 +105,9 @@ def DA_Conv():
   branch2_results = tf.keras.layers.Lambda(lambda x: x[0] * x[1])([image, branch2_results]); # branch2_results.shape = (batch, height, width, 64)
   # 3) output
   results = tf.keras.layers.Add()([branch1_results, branch2_results]);
-  return tf.keras.Model(inputs = (image, de), outputs = results);
+  return tf.keras.Model(inputs = (image, de), outputs = results, **kwargs);
 
-def DABlock():
+def DABlock(**kwargs):
   image = tf.keras.Input((None, None, 64));
   de = tf.keras.Input((64,));
   results = DA_Conv()([image, de]); # results.shape = (batch, height, width, 64);
@@ -111,9 +118,9 @@ def DABlock():
   results = tf.keras.layers.LeakyReLU(0.1)(results);
   results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(results);
   results = tf.keras.layers.Add()([results, image]);
-  return tf.keras.Model(inputs = (image, de), outputs = results);
+  return tf.keras.Model(inputs = (image, de), outputs = results, **kwargs);
 
-def DAGroup():
+def DAGroup(**kwargs):
   image = tf.keras.Input((None, None, 64));
   de = tf.keras.Input((64,));
   results = image;
@@ -121,9 +128,9 @@ def DAGroup():
     results = DABlock()([results, de]);
   results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(results);
   results = tf.keras.layers.Add()([results, image]);
-  return tf.keras.Model(inputs = (image, de), outputs = results);
+  return tf.keras.Model(inputs = (image, de), outputs = results, **kwargs);
 
-def Upsampler(scale = 2):
+def Upsampler(scale = 2, **kwargs):
   inputs = tf.keras.Input((None, None, 64));
   results = inputs;
   if log2(scale) == round(log2(scale), 0): # scale is 2^n
@@ -135,9 +142,9 @@ def Upsampler(scale = 2):
     results = tf.keras.layers.Lambda(lambda x: tf.nn.depth_to_space(x, 3))(results); # results.shape = (batch, height * 3, width * 3, channels)
   else:
     raise Exception('unsupported scale!');
-  return tf.keras.Model(inputs = inputs, outputs = results);
+  return tf.keras.Model(inputs = inputs, outputs = results, **kwargs);
 
-def DASuperResolution(scale = 2):
+def DASuperResolution(scale = 2, **kwargs):
   assert log2(scale) == round(log2(scale), 0);
   image = tf.keras.Input((None, None, 3)); # image with mean intensity reduced
   # head
@@ -155,23 +162,26 @@ def DASuperResolution(scale = 2):
   # tail
   img_results = Upsampler(scale)(img_results);
   img_results = tf.keras.layers.Conv2D(3, kernel_size = (3,3), padding = 'same')(img_results);
-  return tf.keras.Model(inputs = (image, de), outputs = img_results);
+  return tf.keras.Model(inputs = (image, de), outputs = img_results, **kwargs);
 
-def BlindSuperResolution(scale, enable_train = True):
+def BlindSuperResolution(scale, enable_train = True, **kwargs):
+  # NOTE: inputs and key are two patches from a same image
+  # so degradation aware embeddings for inputs and key should be close
   inputs = tf.keras.Input((None, None, 3));
   if enable_train:
     key = tf.keras.Input((None, None, 3));
     da_embedding, loss = MOCO(enable_train = enable_train, name = 'moco')([inputs, key]);
   else:
     da_embedding = MOCO(enable_train = enable_train, name = 'moco')(inputs);
-  results = DASuperResolution(scale = scale)([inputs, da_embedding]);
-  return tf.keras.Model(inputs = (inputs, key) if enable_train else inputs, outputs = (results, loss) if enable_train == True else results);
+  results = DASuperResolution(scale = scale, name = 'sr')([inputs, da_embedding]);
+  return tf.keras.Model(inputs = (inputs, key) if enable_train else inputs, outputs = (results, loss) if enable_train == True else results, **kwargs);
 
 if __name__ == "__main__":
   import numpy as np;
   inputs = np.random.normal(size = (1, 224,224,3));
   key = np.random.normal(size = (1, 224,224,3));
   bsr = BlindSuperResolution(2);
+  print(bsr.outputs[0].name);
   optimizer = tf.keras.optimizers.Adam(1e-2);
   with tf.GradientTape() as tape:
     sr, loss = bsr([inputs, key]);
