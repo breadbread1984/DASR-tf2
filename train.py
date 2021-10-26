@@ -49,7 +49,7 @@ def main(unused_argv):
     dasr = BlindSuperResolution(scale = int(FLAGS.scale), enable_train = True);
     optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecay(FLAGS.lr, decay_steps = 100));
     dasr.compile(optimizer = optimizer,
-                 loss = {'sr/conv2d_120/BiasAdd:0': tf.keras.losses.MeanAbsoluteError(), 'moco/sparse_categorical_crossentropy/weighted_loss/value:0': tf.keras.losses.BinaryCrossentropy()},
+                 loss = {'sr/conv2d_120/BiasAdd:0': tf.keras.losses.MeanAbsoluteError(), 'moco/sparse_categorical_crossentropy/weighted_loss/value:0': tf.keras.losses.BinaryCrossentropy(from_logits = True)},
                  metrics = {'sr/conv2d_120/BiasAdd:0': tf.keras.metrics.MeanAbsoluteError()});
   if FLAGS.save_model:
     if not exists('models'): mkdir('models');
