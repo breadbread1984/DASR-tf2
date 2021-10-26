@@ -129,7 +129,7 @@ def DASR(scale = 2):
   assert log2(scale) == round(log2(scale), 0);
   image = tf.keras.Input((None, None, 3)); # image with mean intensity reduced
   # head
-  img_results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same');
+  img_results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(image);
   # compress
   de = tf.keras.Input((256,)); # degradation embedding
   de_results = tf.keras.layers.Dense(units = 64)(de);
@@ -159,5 +159,8 @@ if __name__ == "__main__":
   de = Encoder();
   import numpy as np;
   inputs = np.random.normal(size = (4, 224,224,3));
-  outputs = BlindSR(2)(inputs);
+  key = np.random.normal(size = (4, 224,224,3));
+  outputs = BlindSR(2)([inputs, key]);
+  print(outputs.shape);
+  outputs = BlindSR(2, enable_train = False)(inputs);
   print(outputs.shape);
