@@ -65,10 +65,42 @@ class MOCO(tf.keras.Model):
       features, _ = self.encoder_q(inputs); # features.shape = (batch, 256)
       return features;
 
+def DA_Conv():
+  image = tf.keras.Input((None, None, 64));
+  de = tf.keras.Input((64,));
+  # 1) branch 1
+  img_results = tf.keras.layers.Lambda(lambda x: tf.reshape(tf.transpose(x, (1,2,3,0)), (1, tf.shape(x)[1], tf.shape(x)[2], -1)))(image); # img_results.shape = (1, height, width, 64 * batch)
+  de_results = tf.keras.layers.Dense(units = 64, use_bias = False)(de);
+  de_results = tf.keras.layers.LeakyReLU(0.1)(de_results);
+  de_results = tf.keras.layers.Dense(units = 3 * 3 * 64, use_bias = False)(de_results); # de_results.shape = (batch, 3 * 3 * 64)
+  de_results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (1, 0)))(de_results); # de_results.shape = (3 * 3 * 64, batch)
+  kernel = tf.keras.layers.Lambda(lambda x: tf.reshape(x, (3,3,-1,1)))(de_results); # kernel.shape = (3,3, 64 * batch,1)
+  branch1_results = tf.keras.layers.Lambda(lambda x: tf.nn.depthwise_conv2d(x[0], x[1], strides = [1,1,1,1], padding = 'SAME'))([img_results, kernel]); # results.shape = (1, height, width, 64 * batch)
+  branch1_results = tf.keras.layers.Lambda(lambda x: tf.transpose(tf.reshape(x, (tf.shape(x)[1], tf.shape(x)[2], 64, -1)), (3,0,1,2)))(branch1_results); # results.shape = (batch, height, width, 64)
+  branch1_results = tf.keras.layers.Conv2D(64, kernel_size = (1,1), padding = 'same')(branch1_results); # results.shape = (batch, height, width, 64)
+  # 2) branch 2
+  branch2_results = tf.keras.layers.Conv2D(64 // 8, kernel_size = (1,1), padding = 'same', use_bias = False)(de);
+  branch2_results = tf.keras.layers.LeakyReLU(0.1)(branch2_results);
+  branch2_results = tf.keras.layers.Conv2D(64, kernel_size = (1,1), padding = 'same', use_bias = False, activation = tf.keras.activations.sigmoid)(branch2_results);
+  branch2_results = tf.keras.layers.Lambda(lambda x: x[0] * x[1])([image, branch2_results]);
+  # 3) output
+  results = tf.keras.layers.Add()([branch1_results, branch2_results]);
+  return tf.keras.Model(inputs = (image, de), outputs = results);
+
+def DAG():
+  image = tf.keras.Input((None, None, 64));
+  de = tf.keras.Input((64,));
+  for i in range(5):
+    results = tf.keras.layers
+
 def DASR():
-  inputs = tf.keras.Input((None, None, 256));
-  results = tf.keras.layers.Dense(units = 64)(inputs);
-  results = tf.keras.layers.LeakyReLU(0.1)(results);
+  image = tf.keras.Input((None, None, 3)); # image with mean intensity reduced
+  img_results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same');
+  de = tf.keras.Input((256,)); # degradation embedding
+  de_results = tf.keras.layers.Dense(units = 64)(de);
+  de_results = tf.keras.layers.LeakyReLU(0.1)(de_results);
+  for i in range(5):
+    
 
 def BlindSR(enable_train = True):
   query = tf.keras.Input((None, None, 3));
@@ -80,7 +112,7 @@ def BlindSR(enable_train = True):
   
 
 if __name__ == "__main__":
-  de = DegradationEncoder();
+  de = Encoder();
   import numpy as np;
   inputs = np.random.normal(size = (4, 224,224,3));
   outputs = de(inputs);
