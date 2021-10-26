@@ -74,5 +74,9 @@ class Dataset(object):
                                          ).map(self.get_parse_function(is_train));
 
 if __name__ == "__main__":
-  trainset = Dataset('/home/xieyi/tensorflow_datasets/div2k/HR', scale = 2).load_dataset(is_train = True);
-  testset = Dataset('/home/xieyi/tensorflow_datasets/div2k/HR', scale = 2).load_dataset(is_train = False);
+  trainset = iter(Dataset('/home/xieyi/tensorflow_datasets/div2k/HR', scale = 2).load_dataset(is_train = True));
+  testset = iter(Dataset('/home/xieyi/tensorflow_datasets/div2k/HR', scale = 2).load_dataset(is_train = False));
+  for i in range(5):
+    (lr1, lr2), hr1 = next(trainset);
+  for i in range(5):
+    lr, hr = next(testset);
