@@ -62,6 +62,8 @@ class Dataset(object):
     def test_parse_function(inputs, outputs):
       lr = inputs;
       hr = outputs;
+      lr = tf.image.resize(lr, (192,192), method = 'bicubic');
+      hr = tf.image.resize(hr, (192 * self.scale, 192 * self.scale), method = 'bicubic');
       mean = tf.reshape(tf.constant([114.444 , 111.4605, 103.02  ], dtype = tf.float32), (1,1,3));
       lr = tf.cast(lr, dtype = tf.float32) - mean;
       hr = tf.cast(hr, dtype = tf.float32) - mean;
@@ -78,5 +80,17 @@ if __name__ == "__main__":
   testset = iter(Dataset('/home/xieyi/tensorflow_datasets/div2k/HR', scale = 2).load_dataset(is_train = False));
   for i in range(5):
     (lr1, lr2), hr1 = next(trainset);
+    lr1 = (lr1.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
+    lr2 = (lr2.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
+    hr1 = (hr1['sr/conv2d_120/BiasAdd:0'] + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
+    cv2.imshow('lr1', lr1);
+    cv2.imshow('lr2', lr2);
+    cv2.imshow('hr1', hr1);
+    cv2.waitKey();
   for i in range(5):
     lr, hr = next(testset);
+    lr = (lr.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
+    hr = (hr['sr/conv2d_120/BiasAdd:0'] + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
+    cv2.imshow('lr', lr);
+    cv2.imshow('hr', hr);
+    cv2.waitKey();
