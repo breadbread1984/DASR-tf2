@@ -68,7 +68,7 @@ class MOCO(tf.keras.Model):
       _, k = self.encoder_k(img_k); # k.shape = (batch, 256)
       k = tf.math.l2_normalize(k, axis = -1); # k.shape = (batch, 256)
       l_pos = tf.math.reduce_sum(q * k, axis = -1, keepdims = True); # l_pos.shape = (batch, 1)
-      l_neg = tf.linalg.matmul(q, self.queue(k)); # l_neg.shape = (batch, k)
+      l_neg = tf.linalg.matmul(q, tf.stop_gradient(self.queue(k))); # l_neg.shape = (batch, k)
       logits = tf.concat([l_pos, l_neg], axis = -1); # logits.shape = (batch, 1+k)
       loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(tf.zeros((tf.shape(img_q)[0],)), logits / self.t);
       return features, loss;
