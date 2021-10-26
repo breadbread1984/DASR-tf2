@@ -76,13 +76,15 @@ def DA_Conv():
   de_results = tf.keras.layers.Lambda(lambda x: tf.transpose(x, (1, 0)))(de_results); # de_results.shape = (3 * 3 * 64, batch)
   kernel = tf.keras.layers.Lambda(lambda x: tf.reshape(x, (3,3,-1,1)))(de_results); # kernel.shape = (3,3, 64 * batch,1)
   branch1_results = tf.keras.layers.Lambda(lambda x: tf.nn.depthwise_conv2d(x[0], x[1], strides = [1,1,1,1], padding = 'SAME'))([img_results, kernel]); # results.shape = (1, height, width, 64 * batch)
+  branch1_results = tf.keras.layers.ReLU()(branch1_results);
   branch1_results = tf.keras.layers.Lambda(lambda x: tf.transpose(tf.reshape(x, (tf.shape(x)[1], tf.shape(x)[2], 64, -1)), (3,0,1,2)))(branch1_results); # results.shape = (batch, height, width, 64)
   branch1_results = tf.keras.layers.Conv2D(64, kernel_size = (1,1), padding = 'same')(branch1_results); # results.shape = (batch, height, width, 64)
   # 2) branch 2
-  branch2_results = tf.keras.layers.Conv2D(64 // 8, kernel_size = (1,1), padding = 'same', use_bias = False)(de);
+  branch2_results = tf.keras.layers.Dense(64 // 8, use_bias = False)(de); # branch2_results.shape = (batch, 8)
   branch2_results = tf.keras.layers.LeakyReLU(0.1)(branch2_results);
-  branch2_results = tf.keras.layers.Conv2D(64, kernel_size = (1,1), padding = 'same', use_bias = False, activation = tf.keras.activations.sigmoid)(branch2_results);
-  branch2_results = tf.keras.layers.Lambda(lambda x: x[0] * x[1])([image, branch2_results]);
+  branch2_results = tf.keras.layers.Dense(64, use_bias = False, activation = tf.keras.activations.sigmoid)(branch2_results); # branch2_results.shape = (batch, 64)
+  branch2_results = tf.keras.layers.Reshape((1,1,64))(branch2_results); # branch2_results.shape = (batch, 1, 1, 64)
+  branch2_results = tf.keras.layers.Lambda(lambda x: x[0] * x[1])([image, branch2_results]); # branch2_results.shape = (batch, height, width, 64)
   # 3) output
   results = tf.keras.layers.Add()([branch1_results, branch2_results]);
   return tf.keras.Model(inputs = (image, de), outputs = results);
@@ -100,7 +102,7 @@ def DASR():
   de_results = tf.keras.layers.Dense(units = 64)(de);
   de_results = tf.keras.layers.LeakyReLU(0.1)(de_results);
   for i in range(5):
-    
+    pass;
 
 def BlindSR(enable_train = True):
   query = tf.keras.Input((None, None, 3));
@@ -116,4 +118,7 @@ if __name__ == "__main__":
   import numpy as np;
   inputs = np.random.normal(size = (4, 224,224,3));
   outputs = de(inputs);
+  img = np.random.normal(size = (4, 224, 224, 64));
+  de = np.random.normal(size = (4, 64));
+  outputs = DA_Conv()([img, de]);
   print(outputs.shape);
