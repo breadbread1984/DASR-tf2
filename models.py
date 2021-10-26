@@ -29,6 +29,20 @@ def Encoder():
   results = tf.keras.layers.Dense(units = 256)(results);
   return tf.keras.Model(inputs = inputs, outputs = (features, results));
 
+class Queue(tf.keras.layers.Layer):
+  def __init__(self, k, **kwargs):
+    self.k = k;
+    super(Queue, self).__init__(**kwargs);
+  def build(self, input_shape):
+    # input_shape = (batch, dim)
+    self.queue = self.add_weight(shape = (input_shape[-1], self.k), dtype = tf.float32, initializer = tf.keras.initializers.RandomNormal(mean = 0, stddev = 1), trainable = False, name = 'queue');
+    self.queue.assign(tf.math.l2_normalize(self.queue, axis = 0));
+  def call(self, inputs):
+    # inputs.shape = (batch, dim)
+    retval = tf.identity(self.queue);
+    self.queue.assign(tf.concat([self.queue[:,tf.shape(inputs)[0]:], tf.transpose(inputs)], axis = -1));
+    return retval;
+
 class MOCO(tf.keras.Model):
   def __init__(self, k = 32 * 256, m = 0.999, t = 0.07, enable_train = True, **kwargs):
     super(MOCO, self).__init__(**kwargs);
@@ -38,7 +52,7 @@ class MOCO(tf.keras.Model):
     self.enable_train = enable_train;
     self.encoder_q = Encoder();
     self.encoder_k = Encoder();
-    self.queue = tf.math.l2_normalize(tf.random.normal(shape = (self.encoder_q.outputs[0].shape[-1], self.k)), axis = 0); # self.queue.shape = (256, k)
+    self.queue = Queue(k); # self.queue.shape = (256, k)
     # copy weights from q to k
     self.encoder_k.set_weights(self.encoder_q.get_weights());
   def call(self, inputs):
@@ -54,11 +68,9 @@ class MOCO(tf.keras.Model):
       _, k = self.encoder_k(img_k); # k.shape = (batch, 256)
       k = tf.math.l2_normalize(k, axis = -1); # k.shape = (batch, 256)
       l_pos = tf.math.reduce_sum(q * k, axis = -1, keepdims = True); # l_pos.shape = (batch, 1)
-      l_neg = tf.linalg.matmul(q, tf.stop_gradient(self.queue)); # l_neg.shape = (batch, k)
+      l_neg = tf.linalg.matmul(q, self.queue(k)); # l_neg.shape = (batch, k)
       logits = tf.concat([l_pos, l_neg], axis = -1); # logits.shape = (batch, 1+k)
       loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(tf.zeros((tf.shape(img_q)[0],)), logits / self.t);
-      # update queue
-      self.queue = tf.concat([self.queue[:,:tf.shape(img_q)[0]], tf.transpose(k)], axis = -1); # self.queue.shape = (256, k - batch + batch)
       return features, loss;
     else:
       features, _ = self.encoder_q(inputs); # features.shape = (batch, 256)
