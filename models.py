@@ -88,7 +88,7 @@ def DA_Conv():
   results = tf.keras.layers.Add()([branch1_results, branch2_results]);
   return tf.keras.Model(inputs = (image, de), outputs = results);
 
-def DAB():
+def DABlock():
   image = tf.keras.Input((None, None, 64));
   de = tf.keras.Input((64,));
   results = DA_Conv()([image, de]); # results.shape = (batch, height, width, 64);
@@ -101,12 +101,12 @@ def DAB():
   results = tf.keras.layers.Add()([results, image]);
   return tf.keras.Model(inputs = (image, de), outputs = results);
 
-def DAG():
+def DAGroup():
   image = tf.keras.Input((None, None, 64));
   de = tf.keras.Input((64,));
   results = image;
   for i in range(5):
-    results = DAB()([results, de]);
+    results = DABlock()([results, de]);
   results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(results);
   results = tf.keras.layers.Add()([results, image]);
   return tf.keras.Model(inputs = (image, de), outputs = results);
@@ -137,7 +137,7 @@ def DASR(scale = 2):
   # body
   skip = img_results;
   for i in range(5):
-    img_results = DAG()([img_results, de_results]);
+    img_results = DAGroup()([img_results, de_results]);
   img_results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(img_results);
   img_results = tf.keras.layers.Add()([img_results, skip]);
   # tail
@@ -153,7 +153,7 @@ def BlindSR(scale, enable_train = True):
   else:
     da_embedding = MOCO(enable_train = enable_train)(inputs);
   results = DASR(scale = scale)([inputs, da_embedding]);
-  return tf.keras.Model(inputs = inputs, outputs = (results, loss) if enable_train == True else results);
+  return tf.keras.Model(inputs = (inputs, key) if enable_train else inputs, outputs = (results, loss) if enable_train == True else results);
 
 if __name__ == "__main__":
   de = Encoder();
