@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from math import log2;
 import tensorflow as tf;
 
 def Encoder():
@@ -29,7 +30,7 @@ def Encoder():
   return tf.keras.Model(inputs = inputs, outputs = (features, results));
 
 class MOCO(tf.keras.Model):
-  def __init__(k = 32 * 256, m = 0.999, t = 0.07, enable_train = True, **kwargs):
+  def __init__(self, k = 32 * 256, m = 0.999, t = 0.07, enable_train = True, **kwargs):
     super(MOCO, self).__init__(**kwargs);
     self.k = k;
     self.m = m;
@@ -93,10 +94,11 @@ def DAB():
   image = tf.keras.Input((None, None, 64));
   de = tf.keras.Input((64,));
   results = DA_Conv([image, de]); # results.shape = (batch, height, width, 64);
-  results = tf.keras.layers.ReLU()(results);
-  results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same', activation = tf.keras.activations.relu)(results);
+  results = tf.keras.layers.LeakyReLU(0.1)(results);
+  results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(results);
+  results = tf.keras.layers.LeakyReLU(0.1)(results);
   results = DA_Conv([results, de]); # results.shape = (batch, height, width, 64)
-  results = tf.keras.layers.ReLU()(results);
+  results = tf.keras.layers.LeakyReLU(0.1)(results);
   results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(results);
   results = tf.keras.layers.Add()([results, image]);
   return tf.keras.Model(inputs = (image, de), outputs = results);
@@ -104,33 +106,60 @@ def DAB():
 def DAG():
   image = tf.keras.Input((None, None, 64));
   de = tf.keras.Input((64,));
+  results = image;
   for i in range(5):
-    results = 
+    results = DAB()([results, de]);
+  results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(results);
+  results = tf.keras.layers.Add()([results, image]);
+  return tf.keras.Model(inputs = (image, de), outputs = results);
 
-def DASR():
+def Upsampler(scale = 2):
+  inputs = tf.keras.Input((None, None, 64));
+  results = inputs;
+  if log2(scale) == round(log2(scale), 0): # scale is 2^n
+    for i in range(int(log2(scale))):
+      results = tf.keras.layers.Conv2D(4 * 64, kernel_size = (3,3), padding = 'same')(results); # results.shape = (batch, height, width, channels * 4)
+      results = tf.keras.layers.Lambda(lambda x: tf.nn.depth_to_space(x, 2))(results); # results.shape = (batch, height * 2, width * 2, channels)
+  elif scale == 3:
+    results = tf.keras.layers.Conv2D(9 * 64, kernel_size = (3,3), padding = 'same')(results); # results.shape = (batch, height, width, channels * 9)
+    results = tf.keras.layers.Lambda(lambda x: tf.nn.depth_to_space(x, 3))(results); # results.shape = (batch, height * 3, width * 3, channels)
+  else:
+    raise Exception('unsupported scale!');
+  return tf.keras.Model(inputs = inputs, outputs = results);
+
+def DASR(scale = 2):
+  assert log2(scale) == round(log2(scale), 0);
   image = tf.keras.Input((None, None, 3)); # image with mean intensity reduced
+  # head
   img_results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same');
+  # compress
   de = tf.keras.Input((256,)); # degradation embedding
   de_results = tf.keras.layers.Dense(units = 64)(de);
   de_results = tf.keras.layers.LeakyReLU(0.1)(de_results);
+  # body
+  skip = img_results;
   for i in range(5):
-    pass;
+    img_results = DAG([img_results, de_results]);
+  img_results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(img_results);
+  img_results = tf.keras.layers.Add()([img_results, skip]);
+  # tail
+  img_results = Upsampler(scale)(img_results);
+  img_results = tf.keras.layers.Conv2D(3, kernel_size = (3,3), padding = 'same')(img_results);
+  return tf.keras.Model(inputs = (image, de), outputs = img_results);
 
-def BlindSR(enable_train = True):
-  query = tf.keras.Input((None, None, 3));
+def BlindSR(scale, enable_train = True):
+  inputs = tf.keras.Input((None, None, 3));
   if enable_train:
     key = tf.keras.Input((None, None, 3));
-    features, loss = MOCO(enable_train = enable_train)(query, key);
+    da_embedding, loss = MOCO(enable_train = enable_train)(inputs, key);
   else:
-    features = MOCO(enable_train = enable_train)(query);
-  
+    da_embedding = MOCO(enable_train = enable_train)(inputs);
+  results = DASR(scale = scale)([inputs, da_embedding]);
+  return tf.keras.Model(inputs = inputs, outputs = (results, loss) if enable_train == True else results);
 
 if __name__ == "__main__":
   de = Encoder();
   import numpy as np;
   inputs = np.random.normal(size = (4, 224,224,3));
-  outputs = de(inputs);
-  img = np.random.normal(size = (4, 224, 224, 64));
-  de = np.random.normal(size = (4, 64));
-  outputs = DA_Conv()([img, de]);
+  outputs = BlindSR(2)(inputs);
   print(outputs.shape);
