@@ -71,7 +71,7 @@ class MOCO(tf.keras.Model):
       q = tf.math.l2_normalize(q, axis = -1);
       # update key encoder with query encoder
       for i in range(len(self.encoder_q.trainable_variables)):
-        self.encoder_k.trainable_variables[i] = self.m * self.encoder_k.trainable_variables[i] + (1 - self.m) * self.encoder_q.trainable_variables[i];
+        self.encoder_k.trainable_variables[i].assign(self.m * self.encoder_k.trainable_variables[i] + (1 - self.m) * self.encoder_q.trainable_variables[i]);
       _, k = self.encoder_k(img_k); # k.shape = (batch, 256)
       k = tf.math.l2_normalize(tf.stop_gradient(k), axis = -1); # k.shape = (batch, 256)
       l_pos = tf.math.reduce_sum(q * k, axis = -1, keepdims = True); # l_pos.shape = (batch, 1)
