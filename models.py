@@ -161,18 +161,19 @@ def BlindSuperResolution(scale, enable_train = True):
   inputs = tf.keras.Input((None, None, 3));
   if enable_train:
     key = tf.keras.Input((None, None, 3));
-    da_embedding, loss = MOCO(enable_train = enable_train)([inputs, key]);
+    da_embedding, loss = MOCO(enable_train = enable_train, name = 'moco')([inputs, key]);
   else:
-    da_embedding = MOCO(enable_train = enable_train)(inputs);
+    da_embedding = MOCO(enable_train = enable_train, name = 'moco')(inputs);
   results = DASuperResolution(scale = scale)([inputs, da_embedding]);
   return tf.keras.Model(inputs = (inputs, key) if enable_train else inputs, outputs = (results, loss) if enable_train == True else results);
 
 if __name__ == "__main__":
-  de = Encoder();
   import numpy as np;
   inputs = np.random.normal(size = (4, 224,224,3));
   key = np.random.normal(size = (4, 224,224,3));
-  outputs = BlindSuperResolution(2)([inputs, key]);
-  print(outputs.shape);
-  outputs = BlindSuperResolution(2, enable_train = False)(inputs);
-  print(outputs.shape);
+  bsr = BlindSuperResolution(2);
+  with tf.GradientTape() as tape:
+    sr, loss = bsr([inputs, key]);
+  grads = tape.gradient(loss, bsr.get_layer('moco').encoder_k.trainable_variables);
+  print(grads);
+  print(sr.shape, loss.shape);
