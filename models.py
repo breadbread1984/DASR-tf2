@@ -41,10 +41,10 @@ class MOCO(tf.keras.Model):
     # copy weights from q to k
     self.encoder_k.set_weights(self.encoder_q.get_weights());
   def call(self, inputs):
-    img_q, img_k = inputs;
-    # img_q.shape = (batch, height, width, channels)
-    # img_k.shape = (batch, height, width, channels)
     if self.enable_train:
+      img_q, img_k = inputs;
+      # img_q.shape = (batch, height, width, channels)
+      # img_k.shape = (batch, height, width, channels)
       features, q = self.encoder_q(img_q); # q.shape = (batch, 256)
       q = tf.math.l2_normalize(q, axis = -1);
       # update key encoder with query encoder
@@ -53,19 +53,30 @@ class MOCO(tf.keras.Model):
       _, k = self.encoder_k(img_k); # k.shape = (batch, 256)
       k = tf.math.l2_normalize(k, axis = -1); # k.shape = (batch, 256)
       l_pos = tf.math.reduce_sum(q * k, axis = -1, keepdims = True); # l_pos.shape = (batch, 1)
-      l_neg = tf.linalg.matmul(q, tf.stack(self.queue, axis = -1)); # l_neg.shape = (batch, k)
+      l_neg = tf.linalg.matmul(q, tf.stop_gradient(tf.stack(self.queue, axis = -1))); # l_neg.shape = (batch, k)
       logits = tf.concate([l_pos, l_neg], axis = -1); # logits.shape = (batch, 1+k)
-      loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(tf.zeros((inputs.shape[0],)), logits / self.t);
+      loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(tf.zeros((img_q.shape[0],)), logits / self.t);
       # update queue
-      del self.queue[:inputs.shape[0]];
-      self.queue.extend([tf.squeeze(e, axis = 0) for e in tf.split(k, inputs.shape[0], axis = 0)]);
+      del self.queue[:img_q.shape[0]];
+      self.queue.extend([tf.squeeze(e, axis = 0) for e in tf.split(k, img_q.shape[0], axis = 0)]);
       assert len(self.queue) == self.k;
       return features, loss;
     else:
       features, _ = self.encoder_q(inputs); # features.shape = (batch, 256)
       return features;
 
-def BlindSR():
+def DASR():
+  inputs = tf.keras.Input((None, None, 256));
+  results = tf.keras.layers.Dense(units = 64)(inputs);
+  results = tf.keras.layers.LeakyReLU(0.1)(results);
+
+def BlindSR(enable_train = True):
+  query = tf.keras.Input((None, None, 3));
+  if enable_train:
+    key = tf.keras.Input((None, None, 3));
+    features, loss = MOCO(enable_train = enable_train)(query, key);
+  else:
+    features = MOCO(enable_train = enable_train)(query);
   
 
 if __name__ == "__main__":
