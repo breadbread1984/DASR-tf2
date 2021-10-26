@@ -125,7 +125,7 @@ def Upsampler(scale = 2):
     raise Exception('unsupported scale!');
   return tf.keras.Model(inputs = inputs, outputs = results);
 
-def DASR(scale = 2):
+def DASuperResolution(scale = 2):
   assert log2(scale) == round(log2(scale), 0);
   image = tf.keras.Input((None, None, 3)); # image with mean intensity reduced
   # head
@@ -145,14 +145,14 @@ def DASR(scale = 2):
   img_results = tf.keras.layers.Conv2D(3, kernel_size = (3,3), padding = 'same')(img_results);
   return tf.keras.Model(inputs = (image, de), outputs = img_results);
 
-def BlindSR(scale, enable_train = True):
+def BlindSuperResolution(scale, enable_train = True):
   inputs = tf.keras.Input((None, None, 3));
   if enable_train:
     key = tf.keras.Input((None, None, 3));
     da_embedding, loss = MOCO(enable_train = enable_train)([inputs, key]);
   else:
     da_embedding = MOCO(enable_train = enable_train)(inputs);
-  results = DASR(scale = scale)([inputs, da_embedding]);
+  results = DASuperResolution(scale = scale)([inputs, da_embedding]);
   return tf.keras.Model(inputs = (inputs, key) if enable_train else inputs, outputs = (results, loss) if enable_train == True else results);
 
 if __name__ == "__main__":
@@ -160,7 +160,7 @@ if __name__ == "__main__":
   import numpy as np;
   inputs = np.random.normal(size = (4, 224,224,3));
   key = np.random.normal(size = (4, 224,224,3));
-  outputs = BlindSR(2)([inputs, key]);
+  outputs = BlindSuperResolution(2)([inputs, key]);
   print(outputs.shape);
-  outputs = BlindSR(2, enable_train = False)(inputs);
+  outputs = BlindSuperResolution(2, enable_train = False)(inputs);
   print(outputs.shape);
