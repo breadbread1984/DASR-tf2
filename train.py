@@ -64,7 +64,7 @@ def main(unused_argv):
     tf.keras.callbacks.ModelCheckpoint(file_path = join(FLAGS.checkpoint, 'ckpt'), save_freq = FLAGS.checkpoint_steps),
     SummaryCallback(dasr, FLAGS.eval_steps),
   ];
-  dasr.fit(trainset, epochs = 560, validation_data = testset, callbacks = callbacks);
+  dasr.fit(trainset, epochs = FLAGS.epochs, validation_data = testset, callbacks = callbacks);
   dasr.save_weights('dasr_weights.h5');
 
 if __name__ == "__main__":
