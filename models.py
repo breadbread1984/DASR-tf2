@@ -45,14 +45,16 @@ class MOCO(tf.keras.Model):
     for i in range(self.k):
       self.queue.append(tf.math.l2_normalize(tf.random.normal(shape = (self.encoder_q.outputs[0].shape[-1],), dtype = tf.float32), axis = 0));
   def call(self, inputs):
-    # inputs.shape = (batch, height, width, channels)
+    img_q, img_k = inputs;
+    # img_q.shape = (batch, height, width, channels)
+    # img_k.shape = (batch, height, width, channels)
     if self.enable_train:
-      features, q = self.encoder_q(inputs); # q.shape = (batch, 256)
+      features, q = self.encoder_q(img_q); # q.shape = (batch, 256)
       q = tf.math.l2_normalize(q, axis = -1);
       # update key encoder with query encoder
       for i in range(len(self.encoder_q.trainable_variables)):
         self.encoder_k.trainable_variables[i] = self.m * self.encoder_k.trainable_variables[i] + (1 - self.m) * self.encoder_q.trainable_variables[i];
-      _, k = self.encoder_k(inputs); # k.shape = (batch, 256)
+      _, k = self.encoder_k(img_k); # k.shape = (batch, 256)
       k = tf.math.l2_normalize(k, axis = -1); # k.shape = (batch, 256)
       l_pos = tf.math.reduce_sum(q * k, axis = -1, keepdims = True); # l_pos.shape = (batch, 1)
       l_neg = tf.linalg.matmul(q, tf.stack(self.queue, axis = -1)); # l_neg.shape = (batch, k)
