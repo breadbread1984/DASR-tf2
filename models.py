@@ -182,6 +182,7 @@ if __name__ == "__main__":
   key = np.random.normal(size = (1, 224,224,3));
   bsr = BlindSuperResolution(2);
   print(bsr.outputs[0].name, bsr.outputs[1].name);
+  bsr.save_weights('bsr_weights.h5');
   optimizer = tf.keras.optimizers.Adam(1e-2);
   with tf.GradientTape() as tape:
     sr, loss = bsr([inputs, key]);
