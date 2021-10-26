@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-from collections import deque;
 import tensorflow as tf;
 
 def Encoder():
@@ -42,7 +41,7 @@ class MOCO(tf.keras.Model):
     if self.enable_train == False: self.encoder_k.trainable = False;
     # copy weights from q to k
     self.encoder_k.set_weights(self.encoder_q.get_weights());
-    self.queue = deque();
+    self.queue = list();
     for i in range(self.k):
       self.queue.append(tf.math.l2_normalize(tf.random.normal(shape = (self.encoder_q.outputs[0].shape[-1],), dtype = tf.float32), axis = 0));
   def call(self, inputs):
@@ -57,17 +56,19 @@ class MOCO(tf.keras.Model):
       k = tf.math.l2_normalize(k, axis = -1); # k.shape = (batch, 256)
       l_pos = tf.math.reduce_sum(q * k, axis = -1, keepdims = True); # l_pos.shape = (batch, 1)
       l_neg = tf.linalg.matmul(q, tf.stack(self.queue, axis = -1)); # l_neg.shape = (batch, k)
-      logits = tf.concate([l_pos, l_neg], axis = -1) / self.t; # logits.shape = (batch, 1+k)
-      labels = tf.zeros((inputs.shape[0],)); # labels.shape = (batch,)
+      logits = tf.concate([l_pos, l_neg], axis = -1); # logits.shape = (batch, 1+k)
+      loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(tf.zeros((inputs.shape[0],)), logits / self.t);
       # update queue
-      for i in range(inputs.shape[0]):
-        self.queue.popleft();
-        self.queue.append(k[i]);
+      del self.queue[:inputs.shape[0]];
+      self.queue.extend([tf.squeeze(e, axis = 0) for e in tf.split(k, inputs.shape[0], axis = 0)]);
       assert len(self.queue) == self.k;
-      return features, logits, labels;
+      return features, loss;
     else:
       features, _ = self.encoder_q(inputs); # features.shape = (batch, 256)
       return features;
+
+def BlindSR():
+  
 
 if __name__ == "__main__":
   de = DegradationEncoder();
