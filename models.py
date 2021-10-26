@@ -68,7 +68,7 @@ class MOCO(tf.keras.Model):
 def DA_Conv():
   image = tf.keras.Input((None, None, 64));
   de = tf.keras.Input((64,));
-  # 1) branch 1
+  # 1) branch 1 (image feature convolution with degradation embedding)
   img_results = tf.keras.layers.Lambda(lambda x: tf.reshape(tf.transpose(x, (1,2,3,0)), (1, tf.shape(x)[1], tf.shape(x)[2], -1)))(image); # img_results.shape = (1, height, width, 64 * batch)
   de_results = tf.keras.layers.Dense(units = 64, use_bias = False)(de);
   de_results = tf.keras.layers.LeakyReLU(0.1)(de_results);
@@ -79,7 +79,7 @@ def DA_Conv():
   branch1_results = tf.keras.layers.ReLU()(branch1_results);
   branch1_results = tf.keras.layers.Lambda(lambda x: tf.transpose(tf.reshape(x, (tf.shape(x)[1], tf.shape(x)[2], 64, -1)), (3,0,1,2)))(branch1_results); # results.shape = (batch, height, width, 64)
   branch1_results = tf.keras.layers.Conv2D(64, kernel_size = (1,1), padding = 'same')(branch1_results); # results.shape = (batch, height, width, 64)
-  # 2) branch 2
+  # 2) branch 2 (image feature attention with degradation embedding)
   branch2_results = tf.keras.layers.Dense(64 // 8, use_bias = False)(de); # branch2_results.shape = (batch, 8)
   branch2_results = tf.keras.layers.LeakyReLU(0.1)(branch2_results);
   branch2_results = tf.keras.layers.Dense(64, use_bias = False, activation = tf.keras.activations.sigmoid)(branch2_results); # branch2_results.shape = (batch, 64)
@@ -89,11 +89,23 @@ def DA_Conv():
   results = tf.keras.layers.Add()([branch1_results, branch2_results]);
   return tf.keras.Model(inputs = (image, de), outputs = results);
 
+def DAB():
+  image = tf.keras.Input((None, None, 64));
+  de = tf.keras.Input((64,));
+  results = DA_Conv([image, de]); # results.shape = (batch, height, width, 64);
+  results = tf.keras.layers.ReLU()(results);
+  results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same', activation = tf.keras.activations.relu)(results);
+  results = DA_Conv([results, de]); # results.shape = (batch, height, width, 64)
+  results = tf.keras.layers.ReLU()(results);
+  results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(results);
+  results = tf.keras.layers.Add()([results, image]);
+  return tf.keras.Model(inputs = (image, de), outputs = results);
+
 def DAG():
   image = tf.keras.Input((None, None, 64));
   de = tf.keras.Input((64,));
   for i in range(5):
-    results = tf.keras.layers
+    results = 
 
 def DASR():
   image = tf.keras.Input((None, None, 3)); # image with mean intensity reduced
