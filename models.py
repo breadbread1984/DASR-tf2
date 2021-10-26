@@ -36,14 +36,10 @@ class MOCO(tf.keras.Model):
     self.t = t;
     self.enable_train = enable_train;
     self.encoder_q = Encoder();
-    if self.enable_train == False: self.encoder_q.trainable = False;
     self.encoder_k = Encoder();
-    if self.enable_train == False: self.encoder_k.trainable = False;
+    self.queue = [tf.math.l2_normalize(tf.random.normal(shape = (self.encoder_q.outputs[0].shape[-1],), dtype = tf.float32)) for i in range(self.k)];
     # copy weights from q to k
     self.encoder_k.set_weights(self.encoder_q.get_weights());
-    self.queue = list();
-    for i in range(self.k):
-      self.queue.append(tf.math.l2_normalize(tf.random.normal(shape = (self.encoder_q.outputs[0].shape[-1],), dtype = tf.float32), axis = 0));
   def call(self, inputs):
     img_q, img_k = inputs;
     # img_q.shape = (batch, height, width, channels)
