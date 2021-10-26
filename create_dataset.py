@@ -58,14 +58,14 @@ class Dataset(object):
       lr_patch1 = tf.cast(lr_patch1, dtype = tf.float32) - mean;
       lr_patch2 = tf.cast(lr_patch2, dtype = tf.float32) - mean;
       hr_patch1 = tf.cast(hr_patch2, dtype = tf.float32) - mean;
-      return (lr_patch1, lr_patch2), {'sr/conv2d_120/BiasAdd:0': hr_patch1};
+      return (lr_patch1, lr_patch2), {'sr/conv2d_120/BiasAdd:0': hr_patch1, 'moco/sparse_categorical_crossentropy/weighted_loss/value:0': 0};
     def test_parse_function(inputs, outputs):
       lr = inputs;
       hr = outputs;
       mean = tf.reshape(tf.constant([114.444 , 111.4605, 103.02  ], dtype = tf.float32), (1,1,3));
       lr = tf.cast(lr, dtype = tf.float32) - mean;
       hr = tf.cast(hr, dtype = tf.float32) - mean;
-      return lr, {'sr/conv2d_120/BiasAdd:0': hr};
+      return lr, {'sr/conv2d_120/BiasAdd:0': hr, 'moco/sparse_categorical_crossentropy/weighted_loss/value:0': 0};
     return train_parse_function if is_train == True else test_parse_function;
   def load_dataset(self, is_train = True, lr_patch_size = 48):
     return tf.data.Dataset.from_generator(self.get_generator(is_train, lr_patch_size),
