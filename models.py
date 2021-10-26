@@ -66,9 +66,9 @@ class MOCO(tf.keras.Model):
       for i in range(len(self.encoder_q.trainable_variables)):
         self.encoder_k.trainable_variables[i] = self.m * self.encoder_k.trainable_variables[i] + (1 - self.m) * self.encoder_q.trainable_variables[i];
       _, k = self.encoder_k(img_k); # k.shape = (batch, 256)
-      k = tf.math.l2_normalize(k, axis = -1); # k.shape = (batch, 256)
+      k = tf.math.l2_normalize(tf.stop_gradient(k), axis = -1); # k.shape = (batch, 256)
       l_pos = tf.math.reduce_sum(q * k, axis = -1, keepdims = True); # l_pos.shape = (batch, 1)
-      l_neg = tf.linalg.matmul(q, tf.stop_gradient(self.queue(k))); # l_neg.shape = (batch, k)
+      l_neg = tf.linalg.matmul(q, self.queue(k)); # l_neg.shape = (batch, k)
       logits = tf.concat([l_pos, l_neg], axis = -1); # logits.shape = (batch, 1+k)
       loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(tf.zeros((tf.shape(img_q)[0],)), logits / self.t);
       return features, loss;
@@ -169,11 +169,11 @@ def BlindSuperResolution(scale, enable_train = True):
 
 if __name__ == "__main__":
   import numpy as np;
-  inputs = np.random.normal(size = (4, 224,224,3));
-  key = np.random.normal(size = (4, 224,224,3));
+  inputs = np.random.normal(size = (1, 224,224,3));
+  key = np.random.normal(size = (1, 224,224,3));
   bsr = BlindSuperResolution(2);
+  optimizer = tf.keras.optimizers.Adam(1e-2);
   with tf.GradientTape() as tape:
     sr, loss = bsr([inputs, key]);
   grads = tape.gradient(loss, bsr.get_layer('moco').encoder_k.trainable_variables);
-  print(grads);
-  print(sr.shape, loss.shape);
+  assert np.all([grad is None for grad in grads]);
