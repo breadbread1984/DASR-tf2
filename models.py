@@ -38,7 +38,7 @@ class MOCO(tf.keras.Model):
     self.enable_train = enable_train;
     self.encoder_q = Encoder();
     self.encoder_k = Encoder();
-    self.queue = [tf.math.l2_normalize(tf.random.normal(shape = (self.encoder_q.outputs[0].shape[-1],), dtype = tf.float32)) for i in range(self.k)];
+    self.queue = tf.math.l2_normalize(tf.random.normal(shape = (self.encoder_q.outputs[0].shape[-1], self.k)), axis = 0); # self.queue.shape = (256, k)
     # copy weights from q to k
     self.encoder_k.set_weights(self.encoder_q.get_weights());
   def call(self, inputs):
@@ -54,13 +54,11 @@ class MOCO(tf.keras.Model):
       _, k = self.encoder_k(img_k); # k.shape = (batch, 256)
       k = tf.math.l2_normalize(k, axis = -1); # k.shape = (batch, 256)
       l_pos = tf.math.reduce_sum(q * k, axis = -1, keepdims = True); # l_pos.shape = (batch, 1)
-      l_neg = tf.linalg.matmul(q, tf.stop_gradient(tf.stack(self.queue, axis = -1))); # l_neg.shape = (batch, k)
-      logits = tf.concate([l_pos, l_neg], axis = -1); # logits.shape = (batch, 1+k)
-      loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(tf.zeros((img_q.shape[0],)), logits / self.t);
+      l_neg = tf.linalg.matmul(q, tf.stop_gradient(self.queue)); # l_neg.shape = (batch, k)
+      logits = tf.concat([l_pos, l_neg], axis = -1); # logits.shape = (batch, 1+k)
+      loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(tf.zeros((tf.shape(img_q)[0],)), logits / self.t);
       # update queue
-      del self.queue[:img_q.shape[0]];
-      self.queue.extend([tf.squeeze(e, axis = 0) for e in tf.split(k, img_q.shape[0], axis = 0)]);
-      assert len(self.queue) == self.k;
+      self.queue = tf.concat([self.queue[:,:tf.shape(img_q)[0]], tf.transpose(k)], axis = -1); # self.queue.shape = (256, k - batch + batch)
       return features, loss;
     else:
       features, _ = self.encoder_q(inputs); # features.shape = (batch, 256)
@@ -93,11 +91,11 @@ def DA_Conv():
 def DAB():
   image = tf.keras.Input((None, None, 64));
   de = tf.keras.Input((64,));
-  results = DA_Conv([image, de]); # results.shape = (batch, height, width, 64);
+  results = DA_Conv()([image, de]); # results.shape = (batch, height, width, 64);
   results = tf.keras.layers.LeakyReLU(0.1)(results);
   results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(results);
   results = tf.keras.layers.LeakyReLU(0.1)(results);
-  results = DA_Conv([results, de]); # results.shape = (batch, height, width, 64)
+  results = DA_Conv()([results, de]); # results.shape = (batch, height, width, 64)
   results = tf.keras.layers.LeakyReLU(0.1)(results);
   results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(results);
   results = tf.keras.layers.Add()([results, image]);
@@ -139,7 +137,7 @@ def DASR(scale = 2):
   # body
   skip = img_results;
   for i in range(5):
-    img_results = DAG([img_results, de_results]);
+    img_results = DAG()([img_results, de_results]);
   img_results = tf.keras.layers.Conv2D(64, kernel_size = (3,3), padding = 'same')(img_results);
   img_results = tf.keras.layers.Add()([img_results, skip]);
   # tail
@@ -151,7 +149,7 @@ def BlindSR(scale, enable_train = True):
   inputs = tf.keras.Input((None, None, 3));
   if enable_train:
     key = tf.keras.Input((None, None, 3));
-    da_embedding, loss = MOCO(enable_train = enable_train)(inputs, key);
+    da_embedding, loss = MOCO(enable_train = enable_train)([inputs, key]);
   else:
     da_embedding = MOCO(enable_train = enable_train)(inputs);
   results = DASR(scale = scale)([inputs, da_embedding]);
