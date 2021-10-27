@@ -29,7 +29,7 @@ class Dataset(object):
             img = np.transpose(img, (1,0,2)); # w x h x c
         h, w = img.shape[:2];
         # gaussian with random parameters
-        sig = np.random.uniform(low = 0.2, high = 4.0, size = ());
+        sig = float(np.random.uniform(low = 0.2, high = 4.0, size = ()));
         img = cv2.GaussianBlur(img, ksize = (21,21), sigmaX = sig);
         if mode in ['moco', 'train']:
           # get two patches from this image
