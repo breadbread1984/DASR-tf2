@@ -39,11 +39,12 @@ class SummaryCallback(tf.keras.callbacks.Callback):
         tf.summary.image('predict', pred_hr, step = self.dasr.optimizer.iterations);
 
 def main(unused_argv):
+  steps_per_epoch = 3450 // FLAGS.batch_size;
   # 1) train moco only
   # 1.1) create model and compile
   dasr = BlindSuperResolution(scale = int(FLAGS.scale), enable_train = True);
   moco = dasr.get_layer('moco');
-  moco_opt = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(1e-3, decay_steps = 60, decay_rate = 0.9));
+  moco_opt = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(1e-3, decay_steps = 60 * steps_per_epoch, decay_rate = 0.9));
   moco.compile(optimizer = moco_opt,
                loss = {'output_2': tf.keras.losses.BinaryCrossentropy(from_logits = True)});
   # 1.2) create dataset
@@ -57,7 +58,7 @@ def main(unused_argv):
   moco.save_weights('moco_weights.h5');
   # 2) train whole network
   # 2.1) create model and compile
-  dasr_opt = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(1e-4, decay_steps = 125, decay_rate = 0.5));
+  dasr_opt = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(1e-4, decay_steps = 125 * steps_per_epoch, decay_rate = 0.5));
   dasr.compile(optimizer = dasr_opt,
                loss = {'sr': tf.keras.losses.MeanAbsoluteError(), 'moco': tf.keras.losses.BinaryCrossentropy(from_logits = True)},
                metrics = {'sr': tf.keras.metrics.MeanAbsoluteError()});
