@@ -54,7 +54,7 @@ def main(unused_argv):
                  metrics = {'sr': tf.keras.metrics.MeanAbsoluteError()});
   if FLAGS.save_model:
     if not exists('models'): mkdir('models');
-    dasr.save_weights(join('models', 'dasr_weights.h5'));
+    dasr.save_weights(join('models', 'dasr_%s_weights.h5' % FLAGS.scale));
     exit();
   # 2) create dataset
   trainset = Dataset(FLAGS.dataset_path, scale = int(FLAGS.scale)).load_dataset(is_train = True).shuffle(10 * FLAGS.batch_size).batch(FLAGS.batch_size).prefetch(tf.data.experimental.AUTOTUNE);

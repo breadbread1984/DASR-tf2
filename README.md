@@ -13,7 +13,7 @@ download DIV2K and Flickr2K and merge their HR images into one directory.
 train with command
 
 ```shell
-python3 train.py --dataset_path=<path/to/HR directory> --batch_size=<batch size>
+python3 train.py --scale=(2|3|4) --dataset_path=<path/to/HR directory> --batch_size=<batch size>
 ```
 
 ## how to save model
@@ -21,13 +21,14 @@ python3 train.py --dataset_path=<path/to/HR directory> --batch_size=<batch size>
 save the trained model with the command
 
 ```shell
-python3 train.py --save_model
+python3 train.py --scale=(2|3|4) --save_model
 ```
 
 ## how to test saved model
 
-test the model with the command
+test the model with the command.
+one among image, video and dataset_path must be provided.
 
 ```shell
-python3 test.py
+python3 test.py --scale=(2|3|4) [--image <test image>] [--video <test video>] [--dataset_path=<path/to/HR directory>]
 ```
