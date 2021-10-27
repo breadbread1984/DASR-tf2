@@ -12,7 +12,7 @@ from models import BlindSuperResolution;
 FLAGS = flags.FLAGS;
 
 def add_options():
-  flags.DEFINE_integer('batch_size', default = 16, help = 'batch size');
+  flags.DEFINE_integer('batch_size', default = 32, help = 'batch size');
   flags.DEFINE_string('checkpoint', default = 'checkpoints', help = 'path to checkpoint directory');
   flags.DEFINE_float('lr', default = 1e-4, help = 'learning rate');
   flags.DEFINE_integer('epochs', default = 560, help = 'epochs');
