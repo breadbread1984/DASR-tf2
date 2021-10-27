@@ -32,8 +32,9 @@ class SummaryCallback(tf.keras.callbacks.Callback):
   def on_batch_end(self, batch, logs = None):
     if batch % self.eval_freq == 0:
       lr, hr = next(self.iter);
-      pred_hr = tf.cast(self.dasr(lr) + tf.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3)), dtype = tf.uint8);
-      gt_hr = tf.cast(hr['sr/conv2d_120/BiasAdd:0'] + tf.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3)), dtype = tf.uint8);
+      pred_hr, loss = self.dasr([lr,lr]);
+      pred_hr = tf.cast(pred_hr + tf.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3)), dtype = tf.uint8);
+      gt_hr = tf.cast(hr['sr'] + tf.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3)), dtype = tf.uint8);
       with self.log.as_default():
         for key, value in logs.items():
           tf.summary.scalar(key, value, step = self.dasr.optimizer.iterations);
