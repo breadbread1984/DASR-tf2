@@ -183,7 +183,9 @@ if __name__ == "__main__":
   bsr = BlindSuperResolution(2);
   bsr.save_weights('bsr_weights.h5');
   optimizer = tf.keras.optimizers.Adam(1e-2);
-  with tf.GradientTape() as tape:
+  with tf.GradientTape(persistent = True) as tape:
     sr, loss = bsr([inputs, key]);
   grads = tape.gradient(loss, bsr.get_layer('moco').encoder_k.trainable_variables);
   assert np.all([grad is None for grad in grads]);
+  grads = tape.gradient(loss, bsr.get_layer('moco').encoder_q.trainable_variables);
+  assert np.all([grad is not None for grad in grads]);
