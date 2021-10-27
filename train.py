@@ -18,7 +18,7 @@ def add_options():
   flags.DEFINE_integer('epochs', default = 560, help = 'epochs');
   flags.DEFINE_bool('save_model', default = False, help = 'whether to save model');
   flags.DEFINE_integer('eval_steps', default = 100, help = 'how many iterations for each evaluation');
-  flags.DEFINE_integer('checkpoint_steps', default = 100, help = 'how many iterations for each checkpoint');
+  flags.DEFINE_integer('checkpoint_steps', default = 1000, help = 'how many iterations for each checkpoint');
   flags.DEFINE_enum('scale', default = '2', enum_values = ['2', '3', '4'], help = 'train DASR on which scale of DIV2K');
   flags.DEFINE_string('dataset_path', default = None, help = 'where the HR images locate');
 
