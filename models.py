@@ -77,7 +77,7 @@ class MOCO(tf.keras.Model):
       l_pos = tf.math.reduce_sum(q * k, axis = -1, keepdims = True); # l_pos.shape = (batch, 1)
       l_neg = tf.linalg.matmul(q, self.queue(k)); # l_neg.shape = (batch, k)
       logits = tf.concat([l_pos, l_neg], axis = -1); # logits.shape = (batch, 1+k)
-      loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True)(tf.zeros((tf.shape(img_q)[0],)), logits / self.t);
+      loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits = True, reduction = tf.keras.losses.Reduction.NONE)(tf.zeros((tf.shape(img_q)[0],)), logits / self.t);
       return features, loss;
     else:
       features, _ = self.encoder_q(inputs); # features.shape = (batch, 256)
@@ -181,7 +181,6 @@ if __name__ == "__main__":
   inputs = np.random.normal(size = (1, 224,224,3));
   key = np.random.normal(size = (1, 224,224,3));
   bsr = BlindSuperResolution(2);
-  print(bsr.outputs[0].name, bsr.outputs[1].name);
   bsr.save_weights('bsr_weights.h5');
   optimizer = tf.keras.optimizers.Adam(1e-2);
   with tf.GradientTape() as tape:
