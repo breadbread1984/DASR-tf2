@@ -71,7 +71,7 @@ class Dataset(object):
   def load_dataset(self, is_train = True, lr_patch_size = 48):
     return tf.data.Dataset.from_generator(self.get_generator(is_train, lr_patch_size),
                                           ((tf.float32, tf.float32), tf.float32) if is_train == True else (tf.float32, tf.float32),
-                                          ((tf.TensorShape([lr_patch_size,lr_patch_size,3]), tf.TensorShape([lr_patch_size,lr_patch_size,3])), tf.TensorShape([lr_patch_size * self.scale, lr_patch_size * scale,3])) if is_train == True else (tf.TensorShape([None, None, 3]), tf.TensorShape([None, None, 3]))
+                                          ((tf.TensorShape([lr_patch_size,lr_patch_size,3]), tf.TensorShape([lr_patch_size,lr_patch_size,3])), tf.TensorShape([lr_patch_size * self.scale, lr_patch_size * self.scale,3])) if is_train == True else (tf.TensorShape([None, None, 3]), tf.TensorShape([None, None, 3]))
                                          ).map(self.get_parse_function(is_train));
 
 if __name__ == "__main__":
