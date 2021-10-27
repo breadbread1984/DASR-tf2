@@ -61,7 +61,7 @@ def main(unused_argv):
   # 3) optimizer
   callbacks = [
     tf.keras.callbacks.TensorBoard(log_dir = FLAGS.checkpoint),
-    tf.keras.callbacks.ModelCheckpoint(file_path = join(FLAGS.checkpoint, 'ckpt'), save_freq = FLAGS.checkpoint_steps),
+    tf.keras.callbacks.ModelCheckpoint(filepath = join(FLAGS.checkpoint, 'ckpt'), save_freq = FLAGS.checkpoint_steps),
     SummaryCallback(dasr, FLAGS.eval_steps),
   ];
   dasr.fit(trainset, epochs = FLAGS.epochs, validation_data = testset, callbacks = callbacks);
