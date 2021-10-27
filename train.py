@@ -58,7 +58,8 @@ def main(unused_argv):
     exit();
   # 2) create dataset
   trainset = Dataset(FLAGS.dataset_path, scale = int(FLAGS.scale)).load_dataset(is_train = True).shuffle(10 * FLAGS.batch_size).batch(FLAGS.batch_size).prefetch(tf.data.experimental.AUTOTUNE);
-  testset = Dataset(FLAGS.dataset_path, scale = int(FLAGS.scale)).load_dataset(is_train = False).shuffle(10 * FLAGS.batch_size).batch(FLAGS.batch_size).prefetch(tf.data.experimental.AUTOTUNE);
+  # NOTE: testset use trainset configuration to make dataset has two inputs, testset configuration only has one input.
+  testset = Dataset(FLAGS.dataset_path, scale = int(FLAGS.scale)).load_dataset(is_train = True).shuffle(10 * FLAGS.batch_size).batch(FLAGS.batch_size).prefetch(tf.data.experimental.AUTOTUNE);
   # 3) optimizer
   callbacks = [
     tf.keras.callbacks.TensorBoard(log_dir = FLAGS.checkpoint),
