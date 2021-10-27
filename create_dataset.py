@@ -28,6 +28,9 @@ class Dataset(object):
           if np.random.uniform() < 0.5:
             img = np.transpose(img, (1,0,2)); # w x h x c
         h, w = img.shape[:2];
+        # gaussian with random parameters
+        sig = np.random.uniform(low = 0.2, high = 4.0, size = ());
+        img = cv2.GaussianBlur(img, ksize = (21,21), sigmaX = sig);
         if is_train == True:
           # get two patches from this image
           hr_patch_size = round(self.scale * lr_patch_size);

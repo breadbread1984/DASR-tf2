@@ -48,7 +48,7 @@ def main(unused_argv):
     optimizer = dasr.optimizer;
   else:
     dasr = BlindSuperResolution(scale = int(FLAGS.scale), enable_train = True);
-    optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.CosineDecay(FLAGS.lr, decay_steps = 100));
+    optimizer = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(FLAGS.lr, decay_steps = 125, decay_rate = 0.5));
     dasr.compile(optimizer = optimizer,
                  loss = {'sr': tf.keras.losses.MeanAbsoluteError(), 'moco': tf.keras.losses.BinaryCrossentropy(from_logits = True)},
                  metrics = {'sr': tf.keras.metrics.MeanAbsoluteError()});
