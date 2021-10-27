@@ -18,7 +18,7 @@ def add_options():
 
 def main(unused_argv):
   dasr = BlindSuperResolution(is_train = False, scale = int(FLAGS.scale));
-  dasr.load_weights(join('models', 'dasr_%s_weights.h5' % FLAGS.scale));
+  dasr = tf.keras.models.load_model(join('checkpoints', 'dasr_ckpt'), custom_objects = {'tf': tf}, compile = True);
   if FLAGS.image is not None:
     img = cv2.imread(FLAGS.image)[...,::-1]; # convert to RGB
     if img is None:
