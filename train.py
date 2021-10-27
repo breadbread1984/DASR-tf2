@@ -46,7 +46,7 @@ def main(unused_argv):
   moco = tf.keras.Model(inputs = dasr.get_layer('moco').inputs, outputs = dasr.get_layer('moco').outputs);
   moco_opt = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(FLAGS.lr, decay_steps = 125, decay_rate = 0.5));
   moco.compile(optimizer = moco_opt,
-               loss = {'moco': tf.keras.losses.BinaryCrossentropy(from_logits = True)});
+               loss = {'output_2': tf.keras.losses.BinaryCrossentropy(from_logits = True)});
   # 1.2) create dataset
   moco_trainset = Dataset(FLAGS.dataset_path, scale = int(FLAGS.scale)).load_dataset(mode = 'moco').shuffle(10 * FLAGS.batch_size).batch(FLAGS.batch_size).prefetch(tf.data.experimental.AUTOTUNE);
   # 1.3) fit

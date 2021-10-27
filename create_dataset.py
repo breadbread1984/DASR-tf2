@@ -60,7 +60,7 @@ class Dataset(object):
       lr_patch1 = tf.cast(lr_patch1, dtype = tf.float32) - mean;
       lr_patch2 = tf.cast(lr_patch2, dtype = tf.float32) - mean;
       hr_patch1 = tf.cast(hr_patch1, dtype = tf.float32) - mean;
-      return (lr_patch1, lr_patch2), {'moco': 0};
+      return (lr_patch1, lr_patch2), {'output_2': 0};
     def train_parse_function(inputs, outputs):
       lr_patch1, lr_patch2 = inputs;
       hr_patch1 = outputs;
