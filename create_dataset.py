@@ -28,8 +28,9 @@ class Dataset(object):
           if np.random.uniform() < 0.5:
             img = np.transpose(img, (1,0,2)); # w x h x c
         h, w = img.shape[:2];
-        # sample sigma value for gaussian blur
+        # sample degradation parameters
         sig = float(np.random.uniform(low = 0.2, high = 4.0, size = ()));
+        method = [cv2.INTER_NEAREST, cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_AREA][np.random.randint(low = 0, high = 4, size = ())];
         if mode in ['moco', 'train']:
           # get two patches from this image
           hr_patch_size = round(self.scale * lr_patch_size);
@@ -41,7 +42,7 @@ class Dataset(object):
             hr = img[y:y+hr_patch_size,x:x+hr_patch_size,:];
             if i == 0: outputs = hr;
             # gaussian blur the two patches with the same sigma value and shrink the patch size
-            lr = cv2.resize(cv2.GaussianBlur(hr, ksize = (21,21), sigmaX = sig), (lr_patch_size, lr_patch_size), interpolation = cv2.INTER_CUBIC);
+            lr = cv2.resize(cv2.GaussianBlur(hr, ksize = (21,21), sigmaX = sig), (lr_patch_size, lr_patch_size), interpolation = method);
             inputs.append(lr);
           inputs = tuple(inputs);
         else:
