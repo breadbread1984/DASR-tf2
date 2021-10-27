@@ -43,7 +43,7 @@ def main(unused_argv):
   # 1) train moco only
   # 1.1) create model and compile
   dasr = BlindSuperResolution(scale = int(FLAGS.scale), enable_train = True);
-  moco = tf.keras.Model(inputs = dasr.get_layer('moco').inputs, outputs = dasr.get_layer('moco').outputs);
+  moco = dasr.get_layer('moco');
   moco_opt = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(FLAGS.lr, decay_steps = 125, decay_rate = 0.5));
   moco.compile(optimizer = moco_opt,
                loss = {'output_2': tf.keras.losses.BinaryCrossentropy(from_logits = True)});
