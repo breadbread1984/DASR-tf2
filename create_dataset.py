@@ -57,7 +57,7 @@ class Dataset(object):
       lr_patch1 = tf.cast(lr_patch1, dtype = tf.float32) - mean;
       lr_patch2 = tf.cast(lr_patch2, dtype = tf.float32) - mean;
       hr_patch1 = tf.cast(hr_patch1, dtype = tf.float32) - mean;
-      return (lr_patch1, lr_patch2), {'sr/conv2d_120/BiasAdd:0': hr_patch1, 'moco/sparse_categorical_crossentropy/weighted_loss/value:0': 0};
+      return (lr_patch1, lr_patch2), {'sr': hr_patch1, 'moco': 0};
     def test_parse_function(inputs, outputs):
       lr = inputs;
       hr = outputs;
@@ -66,7 +66,7 @@ class Dataset(object):
       mean = tf.reshape(tf.constant([114.444 , 111.4605, 103.02  ], dtype = tf.float32), (1,1,3));
       lr = tf.cast(lr, dtype = tf.float32) - mean;
       hr = tf.cast(hr, dtype = tf.float32) - mean;
-      return lr, {'sr/conv2d_120/BiasAdd:0': hr, 'moco/sparse_categorical_crossentropy/weighted_loss/value:0': 0};
+      return lr, {'sr': hr, 'moco': 0};
     return train_parse_function if is_train == True else test_parse_function;
   def load_dataset(self, is_train = True, lr_patch_size = 48):
     return tf.data.Dataset.from_generator(self.get_generator(is_train, lr_patch_size),
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     (lr1, lr2), hr1 = next(trainset);
     lr1 = (lr1.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
     lr2 = (lr2.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
-    hr1 = (hr1['sr/conv2d_120/BiasAdd:0'] + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
+    hr1 = (hr1['sr'] + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
     cv2.imshow('lr1', lr1);
     cv2.imshow('lr2', lr2);
     cv2.imshow('hr1', hr1);
@@ -89,7 +89,7 @@ if __name__ == "__main__":
   for i in range(5):
     lr, hr = next(testset);
     lr = (lr.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
-    hr = (hr['sr/conv2d_120/BiasAdd:0'] + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
+    hr = (hr['sr'] + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
     cv2.imshow('lr', lr);
     cv2.imshow('hr', hr);
     cv2.waitKey();
