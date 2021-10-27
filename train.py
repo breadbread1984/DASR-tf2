@@ -14,7 +14,6 @@ FLAGS = flags.FLAGS;
 def add_options():
   flags.DEFINE_integer('batch_size', default = 32, help = 'batch size');
   flags.DEFINE_string('checkpoint', default = 'checkpoints', help = 'path to checkpoint directory');
-  flags.DEFINE_float('lr', default = 1e-4, help = 'learning rate');
   flags.DEFINE_integer('eval_steps', default = 100, help = 'how many iterations for each evaluation');
   flags.DEFINE_integer('checkpoint_steps', default = 1000, help = 'how many iterations for each checkpoint');
   flags.DEFINE_enum('scale', default = '2', enum_values = ['2', '3', '4'], help = 'train DASR on which scale of DIV2K');
