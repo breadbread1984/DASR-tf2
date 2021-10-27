@@ -81,7 +81,7 @@ if __name__ == "__main__":
     (lr1, lr2), hr1 = next(trainset);
     lr1 = (lr1.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
     lr2 = (lr2.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
-    hr1 = (hr1['sr'] + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
+    hr1 = (hr1['sr'].numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
     cv2.imshow('lr1', lr1);
     cv2.imshow('lr2', lr2);
     cv2.imshow('hr1', hr1);
@@ -89,7 +89,7 @@ if __name__ == "__main__":
   for i in range(5):
     lr, hr = next(testset);
     lr = (lr.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
-    hr = (hr['sr'] + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
+    hr = (hr['sr'].numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,3))).astype(np.uint8);
     cv2.imshow('lr', lr);
     cv2.imshow('hr', hr);
     cv2.waitKey();
