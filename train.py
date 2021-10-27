@@ -54,7 +54,7 @@ def main(unused_argv):
     tf.keras.callbacks.TensorBoard(log_dir = FLAGS.checkpoint),
     tf.keras.callbacks.ModelCheckpoint(filepath = join(FLAGS.checkpoint, 'moco_ckpt'), save_freq = FLAGS.checkpoint_steps),
   ];
-  moco.fit(moco_trainset, epochs = FLAGS.epochs, callbacks = callbacks, epochs = 100);
+  moco.fit(moco_trainset, callbacks = callbacks, epochs = 100);
   moco.save_weights('moco_weights.h5');
   # 2) train whole network
   # 2.1) create model and compile
@@ -70,7 +70,7 @@ def main(unused_argv):
     tf.keras.callbacks.ModelCheckpoint(filepath = join(FLAGS.checkpoint, 'dasr_ckpt'), save_freq = FLAGS.checkpoint_steps),
     SummaryCallback(dasr, FLAGS.eval_steps),
   ];
-  dasr.fit(dasr_trainset, epochs = FLAGS.epochs, callbacks = callbacks, epochs = 500);
+  dasr.fit(dasr_trainset, callbacks = callbacks, epochs = 500);
   dasr.save_weights('dasr_weights.h5');
 
 if __name__ == "__main__":
