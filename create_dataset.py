@@ -14,13 +14,13 @@ class Dataset(object):
     for f in listdir(dir_hr):
       if splitext(f)[1] == '.png':
         self.hr_list.append(join(dir_hr, f));
-  def get_generator(self, is_train = True, lr_patch_size = 48):
+  def get_generator(self, mode = 'train', lr_patch_size = 48):
     def gen():
       for f in self.hr_list:
         # load hr image
         img = cv2.imread(f)[...,::-1];
         # augment
-        if is_train == True:
+        if mode in ['moco', 'train']:
           if np.random.uniform() < 0.5:
             img = cv2.flip(img, 1); # hflip
           if np.random.uniform() < 0.5:
@@ -31,7 +31,7 @@ class Dataset(object):
         # gaussian with random parameters
         sig = np.random.uniform(low = 0.2, high = 4.0, size = ());
         img = cv2.GaussianBlur(img, ksize = (21,21), sigmaX = sig);
-        if is_train == True:
+        if mode in ['moco', 'train']:
           # get two patches from this image
           hr_patch_size = round(self.scale * lr_patch_size);
           inputs = list();
@@ -52,7 +52,15 @@ class Dataset(object):
           inputs = cv2.resize(img, (w//self.scale, h//self.scale), interpolation = cv2.INTER_CUBIC);
         yield inputs, outputs;
     return gen;
-  def get_parse_function(self, is_train = True):
+  def get_parse_function(self, mode = 'train'):
+    def moco_parse_function(inputs, outputs):
+      lr_patch1, lr_patch2 = inputs;
+      hr_patch1 = outputs;
+      mean = tf.reshape(tf.constant([114.444 , 111.4605, 103.02  ], dtype = tf.float32), (1,1,3));
+      lr_patch1 = tf.cast(lr_patch1, dtype = tf.float32) - mean;
+      lr_patch2 = tf.cast(lr_patch2, dtype = tf.float32) - mean;
+      hr_patch1 = tf.cast(hr_patch1, dtype = tf.float32) - mean;
+      return (lr_patch1, lr_patch2), {'moco': 0};
     def train_parse_function(inputs, outputs):
       lr_patch1, lr_patch2 = inputs;
       hr_patch1 = outputs;
@@ -70,16 +78,17 @@ class Dataset(object):
       lr = tf.cast(lr, dtype = tf.float32) - mean;
       hr = tf.cast(hr, dtype = tf.float32) - mean;
       return lr, {'sr': hr, 'moco': 0};
-    return train_parse_function if is_train == True else test_parse_function;
-  def load_dataset(self, is_train = True, lr_patch_size = 48):
-    return tf.data.Dataset.from_generator(self.get_generator(is_train, lr_patch_size),
-                                          ((tf.float32, tf.float32), tf.float32) if is_train == True else (tf.float32, tf.float32),
-                                          ((tf.TensorShape([lr_patch_size,lr_patch_size,3]), tf.TensorShape([lr_patch_size,lr_patch_size,3])), tf.TensorShape([lr_patch_size * self.scale, lr_patch_size * self.scale,3])) if is_train == True else (tf.TensorShape([None, None, 3]), tf.TensorShape([None, None, 3]))
-                                         ).map(self.get_parse_function(is_train));
+    return train_parse_function if mode == 'train' else (test_parse_function if mode == 'test' else moco_parse_function);
+  def load_dataset(self, mode = 'train', lr_patch_size = 48):
+    assert mode in ['train', 'test', 'moco'];
+    return tf.data.Dataset.from_generator(self.get_generator(mode, lr_patch_size),
+                                          ((tf.float32, tf.float32), tf.float32) if mode in ['moco', 'train'] else (tf.float32, tf.float32),
+                                          ((tf.TensorShape([lr_patch_size,lr_patch_size,3]), tf.TensorShape([lr_patch_size,lr_patch_size,3])), tf.TensorShape([lr_patch_size * self.scale, lr_patch_size * self.scale,3])) if mode in ['moco', 'train'] else (tf.TensorShape([None, None, 3]), tf.TensorShape([None, None, 3]))
+                                         ).map(self.get_parse_function(mode));
 
 if __name__ == "__main__":
-  trainset = iter(Dataset('dataset', scale = 2).load_dataset(is_train = True));
-  testset = iter(Dataset('dataset', scale = 2).load_dataset(is_train = False));
+  trainset = iter(Dataset('dataset', scale = 2).load_dataset(mode = 'train'));
+  testset = iter(Dataset('dataset', scale = 2).load_dataset(mode = 'test'));
   for i in range(5):
     samples, labels = next(trainset);
     lr1, lr2 = samples;
