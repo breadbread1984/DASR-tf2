@@ -8,8 +8,7 @@ import tensorflow as tf;
 
 class Dataset(object):
   def __init__(self, dataset_dir, scale):
-    dir_hr = join(dataset_dir, 'HR');
-    dir_lr = join(dataset_dir, 'LR_bicubic');
+    dir_hr = dataset_dir
     self.hr_list = list();
     self.scale = scale;
     for f in listdir(dir_hr):
