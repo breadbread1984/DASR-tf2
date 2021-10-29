@@ -50,7 +50,7 @@ def main(unused_argv):
     video.release();
     writer.release();
   elif FLAGS.dataset_path is not None:
-    testset = Dataset(FLAGS.dataset_path, scale = int(FLAGS.scale)).load_dataset(is_train = False).batch(1);
+    testset = Dataset(FLAGS.dataset_path, scale = int(FLAGS.scale)).load_dataset(enable_train = False).batch(1);
     for lr, hr in testset:
       sr = dasr(lr);
       sr = tf.cast(sr + tf.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3)), dtype = tf.uint8);
