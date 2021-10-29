@@ -17,7 +17,7 @@ def add_options():
   flags.DEFINE_enum('scale', default = '2', enum_values = ['2', '3', '4'], help = 'train DASR on which scale of DIV2K');
 
 def main(unused_argv):
-  dasr = BlindSuperResolution(is_train = False, scale = int(FLAGS.scale));
+  dasr = BlindSuperResolution(enable_train = False, scale = int(FLAGS.scale));
   dasr = tf.keras.models.load_model(join('checkpoints', 'dasr_ckpt'), custom_objects = {'tf': tf}, compile = True);
   if FLAGS.image is not None:
     img = cv2.imread(FLAGS.image)[...,::-1]; # convert to RGB
@@ -50,7 +50,7 @@ def main(unused_argv):
     video.release();
     writer.release();
   elif FLAGS.dataset_path is not None:
-    testset = Dataset(FLAGS.dataset_path, scale = int(FLAGS.scale)).load_dataset(enable_train = False).batch(1);
+    testset = Dataset(FLAGS.dataset_path, scale = int(FLAGS.scale)).load_dataset(mode = 'test').batch(1);
     for lr, hr in testset:
       sr = dasr(lr);
       sr = tf.cast(sr + tf.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3)), dtype = tf.uint8);
