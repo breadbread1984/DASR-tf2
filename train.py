@@ -14,7 +14,6 @@ FLAGS = flags.FLAGS;
 def add_options():
   flags.DEFINE_integer('batch_size', default = 32, help = 'batch size');
   flags.DEFINE_string('checkpoint', default = 'checkpoints', help = 'path to checkpoint directory');
-  flags.DEFINE_float('lr', default = 1e-4, help = 'learning rate');
   flags.DEFINE_integer('eval_steps', default = 100, help = 'how many iterations for each evaluation');
   flags.DEFINE_integer('checkpoint_steps', default = 1000, help = 'how many iterations for each checkpoint');
   flags.DEFINE_enum('scale', default = '2', enum_values = ['2', '3', '4'], help = 'train DASR on which scale of DIV2K');
@@ -40,11 +39,12 @@ class SummaryCallback(tf.keras.callbacks.Callback):
         tf.summary.image('predict', pred_hr, step = self.dasr.optimizer.iterations);
 
 def main(unused_argv):
+  steps_per_epoch = 3450 // FLAGS.batch_size;
   # 1) train moco only
   # 1.1) create model and compile
   dasr = BlindSuperResolution(scale = int(FLAGS.scale), enable_train = True);
   moco = dasr.get_layer('moco');
-  moco_opt = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(FLAGS.lr, decay_steps = 125, decay_rate = 0.5));
+  moco_opt = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(1e-3, decay_steps = 60 * steps_per_epoch, decay_rate = 0.9));
   moco.compile(optimizer = moco_opt,
                loss = {'output_2': tf.keras.losses.BinaryCrossentropy(from_logits = True)});
   # 1.2) create dataset
@@ -58,7 +58,7 @@ def main(unused_argv):
   moco.save_weights('moco_weights.h5');
   # 2) train whole network
   # 2.1) create model and compile
-  dasr_opt = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(FLAGS.lr, decay_steps = 125, decay_rate = 0.5));
+  dasr_opt = tf.keras.optimizers.Adam(tf.keras.optimizers.schedules.ExponentialDecay(1e-4, decay_steps = 125 * steps_per_epoch, decay_rate = 0.5));
   dasr.compile(optimizer = dasr_opt,
                loss = {'sr': tf.keras.losses.MeanAbsoluteError(), 'moco': tf.keras.losses.BinaryCrossentropy(from_logits = True)},
                metrics = {'sr': tf.keras.metrics.MeanAbsoluteError()});
