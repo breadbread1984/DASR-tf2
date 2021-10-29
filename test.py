@@ -17,7 +17,6 @@ def add_options():
   flags.DEFINE_enum('scale', default = '2', enum_values = ['2', '3', '4'], help = 'train DASR on which scale of DIV2K');
 
 def main(unused_argv):
-  dasr = BlindSuperResolution(enable_train = False, scale = int(FLAGS.scale));
   dasr = tf.keras.models.load_model(join('checkpoints', 'dasr_ckpt'), custom_objects = {'tf': tf}, compile = True);
   if FLAGS.image is not None:
     img = cv2.imread(FLAGS.image)[...,::-1]; # convert to RGB
@@ -25,7 +24,7 @@ def main(unused_argv):
       print('invalid image!');
       exit();
     lr = np.expand_dims(tf.cast(img), axis = 0) - np.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3));
-    sr = dasr(lr);
+    sr, loss = dasr([lr, lr]);
     sr = np.squeeze(sr.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3)), axis = 0).astype(np.uint8)[...,::-1];
     cv2.imshow('sr', sr);
     cv2.waitKey();
