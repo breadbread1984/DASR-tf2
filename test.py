@@ -23,7 +23,7 @@ def main(unused_argv):
     if img is None:
       print('invalid image!');
       exit();
-    lr = np.expand_dims(tf.cast(img), axis = 0) - np.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3));
+    lr = np.expand_dims(tf.cast(img, dtype = tf.float32), axis = 0) - np.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3));
     sr = dasr(lr);
     sr = np.squeeze(sr.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3)), axis = 0).astype(np.uint8)[...,::-1];
     cv2.imshow('sr', sr);
