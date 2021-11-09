@@ -16,6 +16,8 @@ train with command
 python3 train.py --scale=(2|3|4) --dataset_path=<path/to/HR directory> --batch_size=<batch size>
 ```
 
+a pretrained checkpoint can be download [here](https://pan.baidu.com/s/1eD69OpuppNDroZcjj2lKgA), passcode is **r7vq**
+
 ## how to save model
 
 save the trained model with the command
