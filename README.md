@@ -21,7 +21,7 @@ python3 train.py --scale=(2|3|4) --dataset_path=<path/to/HR directory> --batch_s
 save the trained model with the command
 
 ```shell
-python3 train.py --scale=(2|3|4) --save_model
+python3 save_model.py --scale=(2|3|4)
 ```
 
 ## how to test saved model
