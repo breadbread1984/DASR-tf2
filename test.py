@@ -43,7 +43,7 @@ def main(unused_argv):
       if retval == False: break;
       img = img[...,::-1]; # convert to rgb
       lr = np.expand_dims(tf.cast(img, dtype = tf.float32), axis = 0) - np.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3));
-      sr, loss = dasr([lr, lr]);
+      sr = dasr(lr);
       sr = np.squeeze(sr.numpy() + np.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3)), axis = 0).astype(np.uint8)[...,::-1]; # convert to bgr
       writer.write(sr);
     video.release();
@@ -51,7 +51,7 @@ def main(unused_argv):
   elif FLAGS.dataset_path is not None:
     testset = Dataset(FLAGS.dataset_path, scale = int(FLAGS.scale)).load_dataset(mode = 'test').batch(1);
     for lr, hr in testset:
-      sr, loss = dasr([lr, lr]);
+      sr = dasr(lr);
       sr = tf.cast(sr + tf.reshape([114.444 , 111.4605, 103.02  ], (1,1,1,3)), dtype = tf.uint8);
       sr = tf.squeeze(sr, axis = 0).numpy()[...,::-1]; # convert to bgr
       cv2.imshow('sr', sr);
